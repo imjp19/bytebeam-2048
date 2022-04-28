@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import Block from "../components/Block";
 import cloneDeep from "lodash.clonedeep";
-import { useEvent } from "../util";
-
+import useEventListener from "@use-it/event-listener";
 import { UP_ARROW, DOWN_ARROW, LEFT_ARROW, RIGHT_ARROW } from "../contants";
+import Button from "../components/Button";
 
 export default function Home() {
   const [data, setData] = useState([
@@ -12,6 +12,17 @@ export default function Home() {
     [0, 0, 0, 0],
     [0, 0, 0, 0],
   ]);
+  const [currentScore, setCurrentScore] = useState(0);
+  const [gameOver, setGameOver] = useState(false);
+  const [winningNumber, setWinningNumber] = useState(2048);
+
+  useEffect(() => {
+    const sum = data.flat().reduce((a, b) => a + b);
+    setCurrentScore(sum);
+    if (sum === winningNumber) {
+      setGameOver(true);
+    }
+  }, [data]);
 
   // Initialize
   const initialize = () => {
@@ -225,6 +236,10 @@ export default function Home() {
   };
 
   const handleKeyDown = (event) => {
+    console.log("called");
+    if (gameOver) {
+      return;
+    }
     switch (event.keyCode) {
       case UP_ARROW:
         swipeUp();
@@ -241,18 +256,86 @@ export default function Home() {
       default:
         break;
     }
+    let gameOverr = checkIfGameOver();
+    if (gameOverr) {
+      setGameOver(true);
+    }
+  };
+
+  const checkIfGameOver = () => {
+    let checker = swipeLeft(true);
+
+    if (JSON.stringify(data) !== JSON.stringify(checker)) {
+      return false;
+    }
+
+    let checker2 = swipeDown(true);
+
+    if (JSON.stringify(data) !== JSON.stringify(checker2)) {
+      return false;
+    }
+
+    let checker3 = swipeRight(true);
+
+    if (JSON.stringify(data) !== JSON.stringify(checker3)) {
+      return false;
+    }
+
+    let checker4 = swipeUp(true);
+
+    if (JSON.stringify(data) !== JSON.stringify(checker4)) {
+      return false;
+    }
+
+    return true;
+  };
+
+  // Reset
+  const resetGame = () => {
+    setGameOver(false);
+    const emptyGrid = [
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+    ];
+
+    addNumber(emptyGrid);
+    addNumber(emptyGrid);
+    setData(emptyGrid);
   };
 
   useEffect(() => {
     initialize();
   }, []);
 
-  // Adding Event Listeners
-  useEvent("keydown", handleKeyDown);
+  useEventListener("keydown", handleKeyDown);
 
   return (
-    <div className="container mx-auto flex items-center justify-center h-screen">
-      <div className="bg-slate-200 p-5 shadow-xl rounded-lg">
+    <div
+      className="container mx-auto flex flex-col items-center h-screen mt-10"
+      onKeyDown={handleKeyDown}>
+      <h1 className="text-2xl font-bold" style={{ color: "#bbada0" }}>
+        Bytebeam - 2048
+      </h1>
+      <div className="mt-10 flex justify-between w-64">
+        <h1 className="text-2xl text-stone-500">Score : {currentScore}</h1>
+        <Button onClick={resetGame} className="ml-10">
+          Reset
+        </Button>
+      </div>
+      <h1 className="text-lg text-stone-500 mt-5">Options</h1>
+      <div className="mt-5">
+        <select
+          value={winningNumber}
+          onChange={(e) => setWinningNumber(e.target.value)}>
+          <option value={2048}>2048</option>
+          <option value={4096}>4096</option>
+        </select>
+      </div>
+      <div
+        className="p-5 shadow-xl rounded-lg mt-10"
+        style={{ background: "#bbada0" }}>
         {data.map((row, oneIndex) => {
           return (
             <div className="flex items-center justify-center" key={oneIndex}>
@@ -263,6 +346,20 @@ export default function Home() {
           );
         })}
       </div>
+      {gameOver && (
+        <div
+          style={{ background: "#bbada0" }}
+          className="fixed h-24 w-96 text-white rounded-lg p-2 mt-10 shadow-lg">
+          {currentScore === 2048 ? (
+            <h1>You Have Beaten The Game!!</h1>
+          ) : (
+            <h1>Game Over!! Try Again</h1>
+          )}
+          <div className="mt-5">
+            <Button onClick={resetGame}>Reset</Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
